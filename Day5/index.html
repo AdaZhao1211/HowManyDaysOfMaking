@@ -1,0 +1,53 @@
+<title>Day5</title>
+<script src=lib.js></script>
+
+<body>
+<canvas id='canvas1' width=400 height=400></canvas>
+</body>
+
+<script id='vs_script' type='x-shader/x-vertex'>
+   attribute vec3 aPos;
+   varying   vec3 vPos;
+   void main() {
+      gl_Position = vec4(aPos, 1.0);
+      vPos = aPos;
+   }
+</script>
+
+<script id='fss_script' type='x-shader/x-fragment'>
+varying vec3 vPos;                               // Position in image
+uniform float uTime;
+vec2 L = vec2(.7, .7);
+float D(float x, float y, float r) {             // Make a disk shape
+   float b = 1. - (x * x + y * y) / (r * r);
+   return sqrt(max(0., b));
+}
+float H(vec2 v){
+  return max(0., 1. - v.x * v.x - v.y * v.y);
+}
+vec3 soap(vec3 v){
+  return sin(15. * v + vec3(10.,10.,10.) *
+                        turbulence(v + vec3(0., 0., .11*uTime)));
+}
+void main() {
+   float x = vPos.x;                             // x and y coords of
+   float y = vPos.y;
+   vec3 c = vec3(.05,.12,.3);                    // Blue sky.
+   c = mix(vec3(.3,.3,.1), c, .5+.5*y);
+   float d = D(x, y, .9);
+   if(d > 0.){
+     vec2 t = vec2((D(x + .01, y, .9) - d) / .01,(D(x, y + .01, .9) - d) / .01);
+     c *= mix(.8, 1., d);
+     c += .3*vec3(d,d,d) * pow(H(t+L)+.8*H(t-L),8.);
+     c *= 1. + .2 * soap(.25 * vec3(t, d));
+   }
+   gl_FragColor = vec4(sqrt(c), 1.);             // Final pixel color
+}
+
+</script>
+
+<script>
+addTextEditor(fss_script.innerHTML,
+              function() { canvas1.setFragmentShader(this.value); });
+gl_start(canvas1, vs_script.innerHTML, fss_script.innerHTML);
+</script>
